@@ -1,7 +1,6 @@
-use roland_rs::devices::v60hd::TallyColor;
-
-use crate::actions::{SELECT_PGM, SELECT_PST};
+use crate::actions::{parse_channel, COMPOSITION, SELECT_AUX, SELECT_PGM, SELECT_PST};
 use crate::settings::ActionSettings;
+use roland_rs::devices::v60hd::{Channel, Composition, PanelStatus, TallyColor};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TallyCheck {
@@ -49,28 +48,84 @@ pub enum TallyLight {
 }
 
 #[derive(Debug, Clone)]
-pub struct TallyBinding {
-    pub source: Option<u8>,
-    pub check: TallyCheck,
+pub enum LightBinding {
+    None,
+    Tally {
+        source: Option<u8>,
+        check: TallyCheck,
+    },
+    Aux {
+        channel: Option<Channel>,
+    },
+    Composition {
+        op: String,
+    },
 }
 
-impl TallyBinding {
+impl LightBinding {
     pub fn from_action(action: &str, settings: &ActionSettings) -> Self {
-        Self {
-            source: tally_source_index(&settings.source),
-            check: TallyCheck::parse(&settings.tally_check, action),
+        if action == SELECT_PGM || action == SELECT_PST {
+            return Self::Tally {
+                source: tally_source_index(&settings.source),
+                check: TallyCheck::parse(&settings.tally_check, action),
+            };
         }
+        if action == SELECT_AUX {
+            return Self::Aux {
+                channel: parse_channel(&settings.source).ok(),
+            };
+        }
+        if action == COMPOSITION {
+            return Self::Composition {
+                op: settings.composition_op.clone(),
+            };
+        }
+        Self::None
     }
 
-    pub fn watches_tally(&self) -> bool {
-        self.check != TallyCheck::Off && self.source.is_some()
+    pub fn light(
+        &self,
+        tally: Option<&[TallyColor; 8]>,
+        panel: Option<&PanelStatus>,
+    ) -> Option<TallyLight> {
+        match self {
+            Self::None => None,
+            Self::Tally { source, check } => {
+                let index = (*source)?;
+                let color = tally.and_then(|states| states.get(index as usize).copied())?;
+                check.light(color)
+            }
+            Self::Aux { channel } => {
+                let channel = (*channel)?;
+                let panel = panel?;
+                if panel.aux == channel {
+                    Some(TallyLight::Program)
+                } else {
+                    None
+                }
+            }
+            Self::Composition { op } => {
+                let panel = panel?;
+                let on = match op.as_str() {
+                    "pinp1" => panel.composition == Composition::PinP1,
+                    "pinp2" => panel.composition == Composition::PinP2,
+                    "split" => panel.composition == Composition::Split,
+                    "dsk" => panel.dsk,
+                    "output_fade" => panel.output_fade,
+                    _ => false,
+                };
+                if on {
+                    Some(TallyLight::Program)
+                } else {
+                    None
+                }
+            }
+        }
     }
 }
 
 pub fn tally_source_index(source: &str) -> Option<u8> {
-    crate::actions::parse_channel(source)
-        .ok()
-        .map(|ch| ch.as_u8())
+    parse_channel(source).ok().map(|ch| ch.as_u8())
 }
 
 pub fn image_data_uri(light: TallyLight) -> String {
@@ -114,5 +169,71 @@ mod tests {
     fn off_never_lights() {
         assert_eq!(TallyCheck::Off.light(TallyColor::Red), None);
         assert_eq!(TallyCheck::Off.light(TallyColor::Green), None);
+    }
+
+    fn sample_panel() -> PanelStatus {
+        PanelStatus {
+            pgm: Channel::Sdi1,
+            pst: Channel::Sdi2,
+            aux: Channel::Sdi3,
+            composition: Composition::PinP1,
+            dsk: true,
+            output_fade: false,
+            video_fade_level: None,
+        }
+    }
+
+    #[test]
+    fn aux_lights_when_qpl_matches() {
+        let settings = ActionSettings {
+            source: "sdi:3".into(),
+            ..ActionSettings::default()
+        };
+        let binding = LightBinding::from_action(SELECT_AUX, &settings);
+        let panel = sample_panel();
+        assert_eq!(binding.light(None, Some(&panel)), Some(TallyLight::Program));
+        let other = ActionSettings {
+            source: "sdi:1".into(),
+            ..ActionSettings::default()
+        };
+        let other = LightBinding::from_action(SELECT_AUX, &other);
+        assert_eq!(other.light(None, Some(&panel)), None);
+    }
+
+    #[test]
+    fn composition_uses_qpl_fields() {
+        let panel = sample_panel();
+        let pinp1 = ActionSettings {
+            composition_op: "pinp1".into(),
+            ..ActionSettings::default()
+        };
+        let dsk = ActionSettings {
+            composition_op: "dsk".into(),
+            ..ActionSettings::default()
+        };
+        let fade = ActionSettings {
+            composition_op: "output_fade".into(),
+            ..ActionSettings::default()
+        };
+        let pvw = ActionSettings {
+            composition_op: "dsk_pvw".into(),
+            ..ActionSettings::default()
+        };
+        assert_eq!(
+            LightBinding::from_action(COMPOSITION, &pinp1).light(None, Some(&panel)),
+            Some(TallyLight::Program)
+        );
+        assert_eq!(
+            LightBinding::from_action(COMPOSITION, &dsk).light(None, Some(&panel)),
+            Some(TallyLight::Program)
+        );
+        assert_eq!(
+            LightBinding::from_action(COMPOSITION, &fade).light(None, Some(&panel)),
+            None
+        );
+        assert_eq!(
+            LightBinding::from_action(COMPOSITION, &pvw).light(None, Some(&panel)),
+            None
+        );
     }
 }

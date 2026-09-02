@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::time::Duration;
 
-use roland_rs::devices::v60hd::{self, Response, TallyColor};
+use roland_rs::devices::v60hd::{self, PanelStatus, Response, TallyColor};
 use roland_rs::AsyncV60HdClient;
 use tokio::sync::{mpsc, oneshot};
 use tokio::time::timeout;
@@ -73,6 +73,7 @@ pub struct Pool {
     status_tx: mpsc::UnboundedSender<(EndpointKey, ConnectionStatus)>,
     idle_tx: mpsc::UnboundedSender<(EndpointKey, u64)>,
     tally_tx: mpsc::UnboundedSender<(EndpointKey, Vec<(u8, TallyColor)>)>,
+    panel_tx: mpsc::UnboundedSender<(EndpointKey, PanelStatus)>,
 }
 
 impl Pool {
@@ -80,6 +81,7 @@ impl Pool {
         status_tx: mpsc::UnboundedSender<(EndpointKey, ConnectionStatus)>,
         idle_tx: mpsc::UnboundedSender<(EndpointKey, u64)>,
         tally_tx: mpsc::UnboundedSender<(EndpointKey, Vec<(u8, TallyColor)>)>,
+        panel_tx: mpsc::UnboundedSender<(EndpointKey, PanelStatus)>,
     ) -> Self {
         Self {
             visible: HashMap::new(),
@@ -88,6 +90,7 @@ impl Pool {
             status_tx,
             idle_tx,
             tally_tx,
+            panel_tx,
         }
     }
 
@@ -159,8 +162,9 @@ impl Pool {
         let (tx, rx) = mpsc::unbounded_channel();
         let status_tx = self.status_tx.clone();
         let tally_tx = self.tally_tx.clone();
+        let panel_tx = self.panel_tx.clone();
         let task_key = key.clone();
-        tokio::spawn(run_endpoint(task_key, rx, status_tx, tally_tx));
+        tokio::spawn(run_endpoint(task_key, rx, status_tx, tally_tx, panel_tx));
         self.endpoints.insert(
             key,
             Slot {
@@ -228,6 +232,7 @@ async fn run_endpoint(
     mut rx: mpsc::UnboundedReceiver<Work>,
     status_tx: mpsc::UnboundedSender<(EndpointKey, ConnectionStatus)>,
     tally_tx: mpsc::UnboundedSender<(EndpointKey, Vec<(u8, TallyColor)>)>,
+    panel_tx: mpsc::UnboundedSender<(EndpointKey, PanelStatus)>,
 ) {
     let mut client: Option<AsyncV60HdClient> = None;
     let mut backoff = Duration::from_secs(1);
@@ -240,6 +245,9 @@ async fn run_endpoint(
                     client = Some(connected);
                     backoff = Duration::from_secs(1);
                     let _ = status_tx.send((key.clone(), ConnectionStatus::Connected));
+                    if let Some(c) = client.as_mut() {
+                        let _ = poll_feedback(c, &key, &tally_tx, &panel_tx).await;
+                    }
                 }
                 Err(e) => {
                     let status = ConnectionStatus::Retrying {
@@ -264,25 +272,29 @@ async fn run_endpoint(
             tokio::select! {
                 incoming = timeout(TALLY_POLL, c.recv()) => {
                     match incoming {
-                        Ok(Ok(response)) => publish_tally(&key, &tally_tx, &response),
+                        Ok(Ok(response)) => {
+                            publish_tally(&key, &tally_tx, &response);
+                            publish_panel(&key, &panel_tx, &response);
+                        }
                         Ok(Err(_)) => drop_client = true,
-                        Err(_) => match c.tly().await {
-                            Ok(colors) => {
-                                let updates = colors
-                                    .into_iter()
-                                    .enumerate()
-                                    .map(|(i, color)| (i as u8, color))
-                                    .collect();
-                                let _ = tally_tx.send((key.clone(), updates));
+                        Err(_) => {
+                            if poll_feedback(c, &key, &tally_tx, &panel_tx).await.is_err() {
+                                drop_client = true;
                             }
-                            Err(_) => drop_client = true,
-                        },
+                        }
                     }
                 }
                 work = rx.recv() => match work {
                     None | Some(Work::Stop) => return,
                     Some(Work::Exec { job, reply }) => {
                         let result = execute(c, job).await;
+                        if result.is_ok()
+                            && poll_feedback(c, &key, &tally_tx, &panel_tx)
+                                .await
+                                .is_err()
+                        {
+                            drop_client = true;
+                        }
                         if result.is_err() {
                             drop_client = true;
                         }
@@ -295,6 +307,36 @@ async fn run_endpoint(
             client = None;
         }
     }
+}
+
+fn publish_panel(
+    key: &EndpointKey,
+    panel_tx: &mpsc::UnboundedSender<(EndpointKey, PanelStatus)>,
+    response: &Response,
+) {
+    if let Response::Panel { values } = response {
+        if let Ok(panel) = PanelStatus::from_qpl_all(values) {
+            let _ = panel_tx.send((key.clone(), panel));
+        }
+    }
+}
+
+async fn poll_feedback(
+    client: &mut AsyncV60HdClient,
+    key: &EndpointKey,
+    tally_tx: &mpsc::UnboundedSender<(EndpointKey, Vec<(u8, TallyColor)>)>,
+    panel_tx: &mpsc::UnboundedSender<(EndpointKey, PanelStatus)>,
+) -> Result<(), String> {
+    let colors = client.tly().await.map_err(|e| e.to_string())?;
+    let updates = colors
+        .into_iter()
+        .enumerate()
+        .map(|(i, color)| (i as u8, color))
+        .collect();
+    let _ = tally_tx.send((key.clone(), updates));
+    let panel = client.qpl_all().await.map_err(|e| e.to_string())?;
+    let _ = panel_tx.send((key.clone(), panel));
+    Ok(())
 }
 
 fn publish_tally(

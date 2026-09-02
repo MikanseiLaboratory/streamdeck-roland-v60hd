@@ -6,14 +6,14 @@ mod tally;
 use std::collections::HashMap;
 use std::env;
 
-use actions::{build_job, Gesture, SELECT_PGM, SELECT_PST};
+use actions::{build_job, Gesture, AUTO, COMPOSITION, CUT, SELECT_AUX, SELECT_PGM, SELECT_PST};
 use futures::{SinkExt, StreamExt};
 use pool::{ConnectionStatus, EndpointKey, Pool, Work};
-use roland_rs::devices::v60hd::TallyColor;
+use roland_rs::devices::v60hd::{PanelStatus, TallyColor};
 use settings::{ActionSettings, EndpointInfo, PiMessage, PiOut};
 use streamdeck_rs::registration::RegistrationParams;
 use streamdeck_rs::{ImagePayload, Message, MessageOut, StreamDeckSocket, Target};
-use tally::{image_data_uri, TallyBinding, TallyLight};
+use tally::{image_data_uri, LightBinding, TallyLight};
 use tokio::sync::{mpsc, oneshot};
 
 type SdSocket = StreamDeckSocket<(), ActionSettings, PiMessage, PiOut>;
@@ -44,7 +44,7 @@ enum Outgoing {
 
 struct KeyWatch {
     endpoint: Option<EndpointKey>,
-    binding: TallyBinding,
+    binding: LightBinding,
 }
 
 struct Plugin {
@@ -52,6 +52,7 @@ struct Plugin {
     open_pi: HashMap<String, String>,
     watches: HashMap<String, KeyWatch>,
     tally_states: HashMap<EndpointKey, [TallyColor; 8]>,
+    panel_states: HashMap<EndpointKey, PanelStatus>,
     last_light: HashMap<String, Option<TallyLight>>,
     outgoing: mpsc::UnboundedSender<Outgoing>,
 }
@@ -67,12 +68,14 @@ async fn main() {
     let (status_tx, mut status_rx) = mpsc::unbounded_channel();
     let (idle_tx, mut idle_rx) = mpsc::unbounded_channel();
     let (tally_tx, mut tally_rx) = mpsc::unbounded_channel();
+    let (panel_tx, mut panel_rx) = mpsc::unbounded_channel();
 
     let mut plugin = Plugin {
-        pool: Pool::new(status_tx, idle_tx, tally_tx),
+        pool: Pool::new(status_tx, idle_tx, tally_tx, panel_tx),
         open_pi: HashMap::new(),
         watches: HashMap::new(),
         tally_states: HashMap::new(),
+        panel_states: HashMap::new(),
         last_light: HashMap::new(),
         outgoing: outgoing_tx,
     };
@@ -103,6 +106,10 @@ async fn main() {
             tally = tally_rx.recv() => {
                 let Some((key, updates)) = tally else { break };
                 plugin.on_tally(key, updates);
+            }
+            panel = panel_rx.recv() => {
+                let Some((key, panel)) = panel else { break };
+                plugin.on_panel(key, panel);
             }
         }
     }
@@ -251,10 +258,12 @@ impl Plugin {
                 *entry = state;
             }
         }
-        let contexts = self.pool.contexts_for(&key);
-        for context in contexts {
-            self.refresh_tally_image(&context);
-        }
+        self.refresh_endpoint_images(&key);
+    }
+
+    fn on_panel(&mut self, key: EndpointKey, panel: PanelStatus) {
+        self.panel_states.insert(key.clone(), panel);
+        self.refresh_endpoint_images(&key);
     }
 
     fn watch_key(&mut self, action: String, context: String, settings: ActionSettings) {
@@ -264,7 +273,7 @@ impl Plugin {
             context.clone(),
             KeyWatch {
                 endpoint,
-                binding: TallyBinding::from_action(&action, &settings),
+                binding: LightBinding::from_action(&action, &settings),
             },
         );
         self.refresh_tally_image(&context);
@@ -279,22 +288,25 @@ impl Plugin {
         });
     }
 
+    fn refresh_endpoint_images(&mut self, key: &EndpointKey) {
+        for context in self.pool.contexts_for(key) {
+            self.refresh_tally_image(&context);
+        }
+    }
+
     fn refresh_tally_image(&mut self, context: &str) {
         let Some(watch) = self.watches.get(context) else {
             return;
         };
-        let light = match (
-            watch.binding.watches_tally(),
-            watch.binding.source,
-            watch.endpoint.as_ref(),
-        ) {
-            (true, Some(index), Some(endpoint)) => self
-                .tally_states
-                .get(endpoint)
-                .and_then(|states| states.get(index as usize).copied())
-                .and_then(|state| watch.binding.check.light(state)),
-            _ => None,
-        };
+        let tally = watch
+            .endpoint
+            .as_ref()
+            .and_then(|endpoint| self.tally_states.get(endpoint));
+        let panel = watch
+            .endpoint
+            .as_ref()
+            .and_then(|endpoint| self.panel_states.get(endpoint));
+        let light = watch.binding.light(tally, panel);
         if self.last_light.get(context) == Some(&light) {
             return;
         }
@@ -310,9 +322,8 @@ impl Plugin {
         self.pool.set_status(key.clone(), status.clone());
         if matches!(status, ConnectionStatus::Retrying { .. }) {
             self.tally_states.remove(&key);
-            for context in self.pool.contexts_for(&key) {
-                self.refresh_tally_image(&context);
-            }
+            self.panel_states.remove(&key);
+            self.refresh_endpoint_images(&key);
         }
         for context in self.pool.contexts_for(&key) {
             self.push_status_value(&context, status.label());
@@ -375,7 +386,10 @@ impl Plugin {
         let tx = self.pool.sender(&key);
         let outgoing = self.outgoing.clone();
         let show_feedback = gesture == Gesture::Down;
-        let skip_ok = action == SELECT_PGM || action == SELECT_PST;
+        let skip_ok = matches!(
+            action.as_str(),
+            SELECT_PGM | SELECT_PST | SELECT_AUX | COMPOSITION | CUT | AUTO
+        );
         tokio::spawn(async move {
             let (reply_tx, reply_rx) = oneshot::channel();
             if tx
