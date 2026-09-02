@@ -1,0 +1,141 @@
+{
+  "SDKVersion": 2,
+  "Author": "Shugo Kawamura",
+  "CodePath": "bin/plugin",
+  "CodePathWin": "bin/plugin.exe",
+  "CodePathMac": "bin/plugin",
+  "Description": "Roland V-60HD LAN control for Stream Deck.",
+  "Name": "Roland V-60HD [MikanseiLaboratory]",
+  "Icon": "images/plugin",
+  "Category": "Roland V-60HD [MikanseiLaboratory]",
+  "CategoryIcon": "images/plugin",
+  "UUID": "com.flowingspdg.roland.v60hd",
+  "Version": "0.0.0.0",
+  "OS": [
+    { "Platform": "windows", "MinimumVersion": "10" },
+    { "Platform": "mac", "MinimumVersion": "10.15" }
+  ],
+  "Software": { "MinimumVersion": "6.4" },
+  "Actions": [
+    {
+      "Icon": "images/plugin",
+      "Name": "Select PGM",
+      "States": [{ "Image": "images/plugin" }],
+      "Tooltip": "V-60HDのPGMソースを切り替える",
+      "UUID": "com.flowingspdg.roland.v60hd.select.pgm",
+      "PropertyInspectorPath": "propertyinspector/index.html"
+    },
+    {
+      "Icon": "images/plugin",
+      "Name": "Select PRV",
+      "States": [{ "Image": "images/plugin" }],
+      "Tooltip": "V-60HDのPST/PRVソースを切り替える",
+      "UUID": "com.flowingspdg.roland.v60hd.select.pst",
+      "PropertyInspectorPath": "propertyinspector/index.html"
+    },
+    {
+      "Icon": "images/plugin",
+      "Name": "Select AUX",
+      "States": [{ "Image": "images/plugin" }],
+      "Tooltip": "V-60HDのAUXソースを切り替える",
+      "UUID": "com.flowingspdg.roland.v60hd.select.aux",
+      "PropertyInspectorPath": "propertyinspector/index.html"
+    },
+    {
+      "Icon": "images/plugin",
+      "Name": "CUT",
+      "States": [{ "Image": "images/plugin" }],
+      "Tooltip": "CUTスイッチ",
+      "UUID": "com.flowingspdg.roland.v60hd.cut",
+      "PropertyInspectorPath": "propertyinspector/index.html"
+    },
+    {
+      "Icon": "images/plugin",
+      "Name": "AUTO",
+      "States": [{ "Image": "images/plugin" }],
+      "Tooltip": "AUTOトランジション",
+      "UUID": "com.flowingspdg.roland.v60hd.auto",
+      "PropertyInspectorPath": "propertyinspector/index.html"
+    },
+    {
+      "Icon": "images/plugin",
+      "Name": "Composition",
+      "States": [{ "Image": "images/plugin" }],
+      "Tooltip": "PinP / SPLIT / DSK / OUTPUT FADE",
+      "UUID": "com.flowingspdg.roland.v60hd.composition",
+      "PropertyInspectorPath": "propertyinspector/index.html"
+    },
+    {
+      "Icon": "images/plugin",
+      "Name": "Transition",
+      "States": [{ "Image": "images/plugin" }],
+      "Tooltip": "トランジション種別と時間",
+      "UUID": "com.flowingspdg.roland.v60hd.transition",
+      "PropertyInspectorPath": "propertyinspector/index.html"
+    },
+    {
+      "Icon": "images/plugin",
+      "Name": "PinP Position",
+      "States": [{ "Image": "images/plugin" }],
+      "Tooltip": "PinP 1 / 2 の位置",
+      "UUID": "com.flowingspdg.roland.v60hd.pinp",
+      "PropertyInspectorPath": "propertyinspector/index.html"
+    },
+    {
+      "Icon": "images/plugin",
+      "Name": "Split Position",
+      "States": [{ "Image": "images/plugin" }],
+      "Tooltip": "SPLIT合成の位置",
+      "UUID": "com.flowingspdg.roland.v60hd.split",
+      "PropertyInspectorPath": "propertyinspector/index.html"
+    },
+    {
+      "Icon": "images/plugin",
+      "Name": "DSK",
+      "States": [{ "Image": "images/plugin" }],
+      "Tooltip": "DSKソース / キーレベル / ゲイン",
+      "UUID": "com.flowingspdg.roland.v60hd.dsk",
+      "PropertyInspectorPath": "propertyinspector/index.html"
+    },
+    {
+      "Icon": "images/plugin",
+      "Name": "Output Assign",
+      "States": [{ "Image": "images/plugin" }],
+      "Tooltip": "SDI / HDMI 出力バス",
+      "UUID": "com.flowingspdg.roland.v60hd.output.assign",
+      "PropertyInspectorPath": "propertyinspector/index.html"
+    },
+    {
+      "Icon": "images/plugin",
+      "Name": "Channel 6 Input",
+      "States": [{ "Image": "images/plugin" }],
+      "Tooltip": "チャンネル6のHDMI / RGB切替",
+      "UUID": "com.flowingspdg.roland.v60hd.channel6",
+      "PropertyInspectorPath": "propertyinspector/index.html"
+    },
+    {
+      "Icon": "images/plugin",
+      "Name": "Memory",
+      "States": [{ "Image": "images/plugin" }],
+      "Tooltip": "プリセットメモリの読み込み",
+      "UUID": "com.flowingspdg.roland.v60hd.memory",
+      "PropertyInspectorPath": "propertyinspector/index.html"
+    },
+    {
+      "Icon": "images/plugin",
+      "Name": "Audio",
+      "States": [{ "Image": "images/plugin" }],
+      "Tooltip": "オーディオレベル / ミュート / ソロ",
+      "UUID": "com.flowingspdg.roland.v60hd.audio",
+      "PropertyInspectorPath": "propertyinspector/index.html"
+    },
+    {
+      "Icon": "images/plugin",
+      "Name": "System",
+      "States": [{ "Image": "images/plugin" }],
+      "Tooltip": "HDCP / テストパターン / テストトーン",
+      "UUID": "com.flowingspdg.roland.v60hd.system",
+      "PropertyInspectorPath": "propertyinspector/index.html"
+    }
+  ]
+}

@@ -1,0 +1,6 @@
+/target
+plugin/com.flowingspdg.roland.v60hd.sdPlugin/bin/plugin
+plugin/com.flowingspdg.roland.v60hd.sdPlugin/bin/plugin.exe
+*.streamDeckPlugin
+/dist
+.DS_Store
