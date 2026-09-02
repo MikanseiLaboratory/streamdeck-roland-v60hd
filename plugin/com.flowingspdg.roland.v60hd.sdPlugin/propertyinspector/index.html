@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Roland V-60HD</title>
+  <link rel="stylesheet" href="sdpi.css">
+</head>
+<body>
+  <div class="sdpi-wrapper">
+    <div class="sdpi-item" data-actions="*">
+      <div class="sdpi-item-label">Connection</div>
+      <select class="sdpi-item-value" id="connection_pick" oninput="onConnectionPick()">
+        <option value="manual">Enter IP</option>
+      </select>
+    </div>
+    <input type="hidden" class="sdProperty" id="connection_mode" value="manual">
+    <div class="sdpi-item" data-actions="*">
+      <div class="sdpi-item-label">Status</div>
+      <div class="sdpi-item-value" id="connectionStatus">Not connected</div>
+    </div>
+    <div class="sdpi-item" data-actions="*" data-manual-only>
+      <div class="sdpi-item-label">Host</div>
+      <input class="sdpi-item-value sdProperty" id="host" placeholder="192.168.2.254" oninput="setSettings()">
+    </div>
+    <div class="sdpi-item" data-actions="*" data-manual-only>
+      <div class="sdpi-item-label"></div>
+      <button class="sdpi-item-value" onclick="testConnection()">Test connection</button>
+    </div>
+
+    <div class="sdpi-item" data-actions="select.pgm select.pst select.aux dsk">
+      <div class="sdpi-item-label">Source</div>
+      <select class="sdpi-item-value sdProperty video-source" id="source" oninput="setSettings()"></select>
+    </div>
+    <div class="sdpi-item" data-actions="select.pgm select.pst">
+      <div class="sdpi-item-label">Tally Check</div>
+      <select class="sdpi-item-value sdProperty" id="tally_check" oninput="setSettings()">
+        <option value="off">Off</option>
+        <option value="prv">PRV</option>
+        <option value="pgm">PGM</option>
+        <option value="both">PRV/PGM</option>
+      </select>
+    </div>
+
+    <div class="sdpi-item" data-actions="composition">
+      <div class="sdpi-item-label">Button</div>
+      <select class="sdpi-item-value sdProperty" id="composition_op" oninput="setSettings()">
+        <option value="pinp1">PinP 1</option>
+        <option value="pinp2">PinP 2</option>
+        <option value="split">SPLIT</option>
+        <option value="dsk">DSK</option>
+        <option value="dsk_pvw">DSK PVW</option>
+        <option value="auto_mixing">AUTO MIXING</option>
+        <option value="output_fade">OUTPUT FADE</option>
+      </select>
+    </div>
+
+    <div class="sdpi-item" data-actions="transition">
+      <div class="sdpi-item-label">Operation</div>
+      <select class="sdpi-item-value sdProperty" id="trans_op" oninput="setSettings()">
+        <option value="type">Mix / Wipe</option>
+        <option value="time">Time</option>
+      </select>
+    </div>
+    <div class="sdpi-item" data-actions="transition">
+      <div class="sdpi-item-label">Mix/Wipe</div>
+      <select class="sdpi-item-value sdProperty" id="trans_type" oninput="setSettings()">
+        <option value="mix">Mix</option>
+        <option value="wipe1">Wipe 1</option>
+        <option value="wipe2">Wipe 2</option>
+      </select>
+    </div>
+    <div class="sdpi-item" data-actions="transition">
+      <div class="sdpi-item-label">Tenths</div>
+      <input class="sdpi-item-value sdProperty" id="tenths" type="number" min="0" max="40" value="10" oninput="setSettings()">
+    </div>
+
+    <div class="sdpi-item" data-actions="pinp">
+      <div class="sdpi-item-label">PinP</div>
+      <select class="sdpi-item-value sdProperty" id="pinp_key" oninput="setSettings()">
+        <option value="1">PinP 1</option>
+        <option value="2">PinP 2</option>
+      </select>
+    </div>
+    <div class="sdpi-item" data-actions="pinp split">
+      <div class="sdpi-item-label">H / Pos 1</div>
+      <input class="sdpi-item-value sdProperty" id="pos_h" type="number" value="0" oninput="setSettings()">
+    </div>
+    <div class="sdpi-item" data-actions="pinp split">
+      <div class="sdpi-item-label">V / Pos 2</div>
+      <input class="sdpi-item-value sdProperty" id="pos_v" type="number" value="0" oninput="setSettings()">
+    </div>
+
+    <div class="sdpi-item" data-actions="dsk">
+      <div class="sdpi-item-label">Operation</div>
+      <select class="sdpi-item-value sdProperty" id="dsk_op" oninput="setSettings()">
+        <option value="source">Source</option>
+        <option value="key_level">Key level</option>
+        <option value="key_gain">Key gain</option>
+      </select>
+    </div>
+
+    <div class="sdpi-item" data-actions="output.assign">
+      <div class="sdpi-item-label">Output</div>
+      <select class="sdpi-item-value sdProperty" id="output" oninput="setSettings()">
+        <option value="sdi1">SDI OUT 1</option>
+        <option value="sdi2">SDI OUT 2</option>
+        <option value="hdmi1">HDMI OUT 1</option>
+        <option value="hdmi2">HDMI OUT 2</option>
+      </select>
+    </div>
+    <div class="sdpi-item" data-actions="output.assign">
+      <div class="sdpi-item-label">Bus</div>
+      <select class="sdpi-item-value sdProperty" id="output_assign" oninput="setSettings()">
+        <option value="program">Program</option>
+        <option value="preview">PRV</option>
+        <option value="aux">AUX</option>
+      </select>
+    </div>
+
+    <div class="sdpi-item" data-actions="channel6">
+      <div class="sdpi-item-label">Connector</div>
+      <select class="sdpi-item-value sdProperty" id="channel6" oninput="setSettings()">
+        <option value="hdmi">HDMI</option>
+        <option value="rgb">RGB/Component</option>
+      </select>
+    </div>
+
+    <div class="sdpi-item" data-actions="memory">
+      <div class="sdpi-item-label">Slot</div>
+      <select class="sdpi-item-value sdProperty" id="slot" oninput="setSettings()"></select>
+    </div>
+
+    <div class="sdpi-item" data-actions="audio">
+      <div class="sdpi-item-label">Operation</div>
+      <select class="sdpi-item-value sdProperty" id="audio_op" oninput="setSettings()">
+        <option value="input_level">Input level</option>
+        <option value="master">Master out</option>
+        <option value="aux">AUX level</option>
+        <option value="delay">Input delay</option>
+        <option value="mute">Mute</option>
+        <option value="solo">Solo</option>
+      </select>
+    </div>
+    <div class="sdpi-item" data-actions="audio">
+      <div class="sdpi-item-label">Input</div>
+      <select class="sdpi-item-value sdProperty" id="audio_input" oninput="setSettings()">
+        <option value="0">AUDIO IN 1</option>
+        <option value="1">AUDIO IN 2</option>
+        <option value="2">AUDIO IN 3</option>
+        <option value="3">AUDIO IN 4</option>
+        <option value="4">AUDIO IN 5/6</option>
+        <option value="5">SDI 1</option>
+        <option value="6">SDI 2</option>
+        <option value="7">SDI 3</option>
+        <option value="8">SDI 4</option>
+        <option value="9">HDMI 5</option>
+        <option value="10">HDMI 6</option>
+      </select>
+    </div>
+    <div class="sdpi-item" data-actions="audio">
+      <div class="sdpi-item-label">Analog</div>
+      <select class="sdpi-item-value sdProperty" id="analog_input" oninput="setSettings()">
+        <option value="0">AUDIO IN 1</option>
+        <option value="1">AUDIO IN 2</option>
+        <option value="2">AUDIO IN 3</option>
+        <option value="3">AUDIO IN 4</option>
+        <option value="4">AUDIO IN 5/6</option>
+      </select>
+    </div>
+
+    <div class="sdpi-item" data-actions="system">
+      <div class="sdpi-item-label">Operation</div>
+      <select class="sdpi-item-value sdProperty" id="system_op" oninput="setSettings()">
+        <option value="hdcp">HDCP</option>
+        <option value="test_pattern">Test pattern</option>
+        <option value="test_tone">Test tone</option>
+      </select>
+    </div>
+    <div class="sdpi-item" data-actions="system">
+      <div class="sdpi-item-label">HDCP</div>
+      <select class="sdpi-item-value sdProperty" id="hdcp" oninput="setSettings()">
+        <option value="off">Off</option>
+        <option value="on">On</option>
+      </select>
+    </div>
+    <div class="sdpi-item" data-actions="system">
+      <div class="sdpi-item-label">Pattern</div>
+      <select class="sdpi-item-value sdProperty" id="test_pattern" oninput="setSettings()">
+        <option value="0">Off</option>
+        <option value="1">75% color bar</option>
+        <option value="2">100% color bar</option>
+        <option value="3">Ramp</option>
+        <option value="4">Step</option>
+        <option value="5">Hatch</option>
+      </select>
+    </div>
+    <div class="sdpi-item" data-actions="system">
+      <div class="sdpi-item-label">Tone</div>
+      <select class="sdpi-item-value sdProperty" id="test_tone" oninput="setSettings()">
+        <option value="0">Off</option>
+        <option value="1">-20dB 1kHz</option>
+        <option value="2">-10dB 1kHz</option>
+        <option value="3">0dB 1kHz</option>
+        <option value="4">-20dB 400Hz</option>
+        <option value="5">-10dB 400Hz</option>
+        <option value="6">0dB 400Hz</option>
+      </select>
+    </div>
+
+    <div class="sdpi-item" data-actions="dsk audio">
+      <div class="sdpi-item-label">Value</div>
+      <input class="sdpi-item-value sdProperty" id="value" placeholder="level / delay tenths" oninput="setSettings()">
+    </div>
+  </div>
+  <script src="sdtools.common.js"></script>
+  <script src="plugin.js"></script>
+</body>
+</html>
