@@ -70,10 +70,14 @@ jobs:
           VERSION="${TAG#v}"
           if [[ "$VERSION" =~ ^([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)$ ]]; then
             PLUGIN_VERSION="${BASH_REMATCH[1]}"
+          elif [[ "$VERSION" =~ ^([0-9]+\.[0-9]+\.[0-9]+)$ ]]; then
+            PLUGIN_VERSION="${BASH_REMATCH[1]}.0"
           elif [[ "$VERSION" =~ ^([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)-(alpha|beta|rc)(\.[0-9]+)?$ ]]; then
             PLUGIN_VERSION="${BASH_REMATCH[1]}"
+          elif [[ "$VERSION" =~ ^([0-9]+\.[0-9]+\.[0-9]+)-(alpha|beta|rc)(\.[0-9]+)?$ ]]; then
+            PLUGIN_VERSION="${BASH_REMATCH[1]}.0"
           else
-            echo "::error::Unsupported tag '${TAG}'. Use v0.1.0.0 for a Release, or v0.1.0.0-alpha.1 / v0.1.0.0-beta.1 / v0.1.0.0-rc.1 for a Pre-release."
+            echo "::error::Unsupported tag '${TAG}'. Use v0.1.0 for a Release, or v0.1.0-alpha.1 / v0.1.0-beta.1 / v0.1.0-rc.1 for a Pre-release."
             exit 1
           fi
           export PLUGIN_VERSION
@@ -102,12 +106,12 @@ jobs:
         run: |
           set -euo pipefail
           VERSION="${TAG#v}"
-          if [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+          if [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(\.[0-9]+)?$ ]]; then
             echo "prerelease=false" >> "$GITHUB_OUTPUT"
-          elif [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+-(alpha|beta|rc)(\.[0-9]+)?$ ]]; then
+          elif [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(\.[0-9]+)?-(alpha|beta|rc)(\.[0-9]+)?$ ]]; then
             echo "prerelease=true" >> "$GITHUB_OUTPUT"
           else
-            echo "::error::Unsupported tag '${TAG}'. Use v0.1.0.0 for a Release, or v0.1.0.0-alpha.1 / v0.1.0.0-beta.1 / v0.1.0.0-rc.1 for a Pre-release."
+            echo "::error::Unsupported tag '${TAG}'. Use v0.1.0 for a Release, or v0.1.0-alpha.1 / v0.1.0-beta.1 / v0.1.0-rc.1 for a Pre-release."
             exit 1
           fi
 
