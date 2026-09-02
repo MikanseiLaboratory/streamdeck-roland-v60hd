@@ -450,12 +450,12 @@ dependencies = [
 [[package]]
 name = "roland-core"
 version = "0.1.0"
-source = "git+https://github.com/FlowingSPDG/roland-rs?branch=feature%2Fv60hd#e232ac7bc7695bbb1894c0276b215a57bcba2520"
+source = "git+https://github.com/FlowingSPDG/roland-rs?branch=main#1296733b08792f3e0e1062fe273a55ec8a9c295d"
 
 [[package]]
 name = "roland-rs"
 version = "0.1.0"
-source = "git+https://github.com/FlowingSPDG/roland-rs?branch=feature%2Fv60hd#e232ac7bc7695bbb1894c0276b215a57bcba2520"
+source = "git+https://github.com/FlowingSPDG/roland-rs?branch=main#1296733b08792f3e0e1062fe273a55ec8a9c295d"
 dependencies = [
  "roland-core",
  "tokio",
